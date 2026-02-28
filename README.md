@@ -84,18 +84,19 @@ npx get-shit-done-cc@latest
 ```
 
 The installer prompts you to choose:
-1. **Runtime** — Claude Code, OpenCode, Gemini, Codex, Copilot, Antigravity, or all
+1. **Runtime** — Claude Code, OpenCode, Gemini, Codex, Copilot, Antigravity, Roo Code, or all
 2. **Location** — Global (all projects) or local (current project only)
 
 Verify with:
 - Claude Code / Gemini: `/gsd:help`
-- OpenCode: `/gsd-help`
+- OpenCode / Roo Code: `/gsd-help`
 - Codex: `$gsd-help`
 - Copilot: `/gsd:help`
 - Antigravity: `/gsd:help`
 
 > [!NOTE]
 > Codex installation uses skills (`skills/gsd-*/SKILL.md`) rather than custom prompts.
+> Roo Code installation uses project-level modes (`.roomodes`) or global custom modes (`custom_modes.yaml`) along with custom slash commands (`~/.roo/commands/`).
 
 ### Staying Updated
 
@@ -131,12 +132,16 @@ npx get-shit-done-cc --copilot --local   # Install to ./.github/
 npx get-shit-done-cc --antigravity --global # Install to ~/.gemini/antigravity/
 npx get-shit-done-cc --antigravity --local  # Install to ./.agent/
 
+# Roo Code
+npx get-shit-done-cc --roo --global      # Install to ~/.roo/
+npx get-shit-done-cc --roo --local       # Install to ./.roo/
+
 # All runtimes
 npx get-shit-done-cc --all --global      # Install to all directories
 ```
 
 Use `--global` (`-g`) or `--local` (`-l`) to skip the location prompt.
-Use `--claude`, `--opencode`, `--gemini`, `--codex`, `--copilot`, `--antigravity`, or `--all` to skip the runtime prompt.
+Use `--claude`, `--opencode`, `--gemini`, `--codex`, `--copilot`, `--antigravity`, `--roo`, or `--all` to skip the runtime prompt.
 
 </details>
 
@@ -154,6 +159,17 @@ node bin/install.js --claude --local
 Installs to `./.claude/` for testing modifications before contributing.
 
 </details>
+
+### Roo Code Integration
+
+GSD supports [Roo Code](https://github.com/RooVeterinaryInc/Roo-Cline) through automatic conversion of Claude Code slash commands into Roo custom modes and slash commands.
+
+- **Slash Commands**: Replaced `/gsd:xxx` (Claude) with `/gsd-xxx` (Roo).
+- **Tools**: Maps Claude-style tools to Roo equivalents (e.g., `Bash` -> `execute_command`, `Read` -> `read_file`).
+- **Modes**: GSD agents are installed as custom Roo modes (e.g., `gsd-executor`, `gsd-planner`).
+- **Subagents**: Spawns subagents using Roo's `new_task` tool with appropriate mode mapping.
+
+Verify your installation by running `/gsd-help` in Roo Code.
 
 ### Recommended: Skip Permissions Mode
 

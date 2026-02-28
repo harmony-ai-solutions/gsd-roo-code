@@ -1769,10 +1769,14 @@ function convertCommandForRoo(content, pathPrefix) {
  */
 function replacePathsForRoo(content, pathPrefix) {
   const globalClaudeRegex = /~\/\.claude\//g;
+  const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
   const localClaudeRegex = /\.\/\.claude\//g;
 
   // Replace global ~/.claude/ with Roo's global path
   content = content.replace(globalClaudeRegex, pathPrefix);
+
+  // Replace global $HOME/.claude/ with Roo's global path
+  content = content.replace(globalClaudeHomeRegex, pathPrefix);
 
   // Replace local ./.claude/ with ./.roo/
   content = content.replace(localClaudeRegex, `./.roo/`);
@@ -3776,6 +3780,10 @@ if (process.env.GSD_TEST_MODE) {
     convertClaudeCommandToCodexSkill,
     convertClaudeToOpencodeFrontmatter,
     neutralizeAgentReferences,
+    replacePathsForRoo,
+    convertCommandForRoo,
+    installRooModes,
+    copyFlattenedCommands,
     GSD_CODEX_MARKER,
     CODEX_AGENT_SANDBOX,
     getDirName,
