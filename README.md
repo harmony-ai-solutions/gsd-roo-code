@@ -342,19 +342,26 @@ If everything passes, you move on. If something's broken, you don't manually deb
 
 ---
 
-### 6. Repeat → Complete → Next Milestone
+### 6. Repeat → Ship → Complete → Next Milestone
 
 ```
 /gsd:discuss-phase 2
 /gsd:plan-phase 2
 /gsd:execute-phase 2
 /gsd:verify-work 2
+/gsd:ship 2                  # Create PR from verified work
 ...
 /gsd:complete-milestone
 /gsd:new-milestone
 ```
 
-Loop **discuss → plan → execute → verify** until milestone complete.
+Or let GSD figure out the next step automatically:
+
+```
+/gsd:next                    # Auto-detect and run next step
+```
+
+Loop **discuss → plan → execute → verify → ship** until milestone complete.
 
 If you want faster intake during discussion, use `/gsd:discuss-phase <n> --batch` to answer a small grouped set of questions at once instead of one-by-one.
 
@@ -491,6 +498,8 @@ You're never locked in. The system adapts.
 | `/gsd:plan-phase [N] [--auto]` | Research + plan + verify for a phase |
 | `/gsd:execute-phase <N>` | Execute all plans in parallel waves, verify when complete |
 | `/gsd:verify-work [N]` | Manual user acceptance testing ¹ |
+| `/gsd:ship [N] [--draft]` | Create PR from verified phase work with auto-generated body |
+| `/gsd:next` | Automatically advance to the next logical workflow step |
 | `/gsd:audit-milestone` | Verify milestone achieved its definition of done |
 | `/gsd:complete-milestone` | Archive milestone, tag release |
 | `/gsd:new-milestone [name]` | Start next version: questions → research → requirements → roadmap |
@@ -507,6 +516,7 @@ You're never locked in. The system adapts.
 | Command | What it does |
 |---------|--------------|
 | `/gsd:progress` | Where am I? What's next? |
+| `/gsd:next` | Auto-detect state and run the next step |
 | `/gsd:help` | Show all commands and usage guide |
 | `/gsd:update` | Update GSD with changelog preview |
 | `/gsd:join-discord` | Join the GSD Discord community |
@@ -531,8 +541,9 @@ You're never locked in. The system adapts.
 
 | Command | What it does |
 |---------|--------------|
-| `/gsd:pause-work` | Create handoff when stopping mid-phase |
+| `/gsd:pause-work` | Create handoff when stopping mid-phase (writes HANDOFF.json) |
 | `/gsd:resume-work` | Restore from last session |
+| `/gsd:session-report` | Generate session summary with work performed and outcomes |
 
 ### Utilities
 
@@ -581,7 +592,7 @@ Switch profiles:
 /gsd:set-profile budget
 ```
 
-Use `inherit` to follow the current runtime model selection (for example OpenCode `/model`).
+Use `inherit` when using non-Anthropic providers (OpenRouter, local models) or to follow the current runtime model selection (e.g. OpenCode `/model`).
 
 Or configure via `/gsd:settings`.
 
