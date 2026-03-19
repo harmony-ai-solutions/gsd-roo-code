@@ -421,7 +421,7 @@ function getCommitAttribution(runtime) {
       result = settings.attribution.commit;
     }
   } else {
-    // Codex and Copilot currently have no attribution setting equivalent
+    // Codex, Copilot, Antigravity, Cursor, and Roo currently have no attribution setting equivalent
     result = undefined;
   }
 
@@ -1205,17 +1205,22 @@ function installRooModes(targetDir, agentsSrc, isGlobal) {
   console.log(`  ${green}✓${reset} Preparing ${agentFiles.length} Roo custom modes`);
 
   const agentModeMap = {
-    'gsd-executor.md':             { slug: 'gsd-executor',            name: 'GSD Executor',            groups: ['read','edit','command','mcp'], whenToUse: 'Executes GSD PLAN.md files atomically with per-task commits. Spawned by /gsd-execute-phase.' },
+    'gsd-executor.md':             { slug: 'gsd-executor',            name: 'GSD Executor',            groups: ['read','edit','command'],      whenToUse: 'Executes GSD PLAN.md files atomically with per-task commits. Spawned by /gsd-execute-phase.' },
     'gsd-planner.md':              { slug: 'gsd-planner',             name: 'GSD Planner',             groups: ['read','edit','command','mcp'], whenToUse: 'Creates PLAN.md files for GSD phases. Spawned by /gsd-plan-phase.' },
     'gsd-phase-researcher.md':     { slug: 'gsd-phase-researcher',    name: 'GSD Phase Researcher',    groups: ['read','edit','command','mcp'], whenToUse: 'Researches domain knowledge before phase planning. Spawned by /gsd-plan-phase.' },
     'gsd-project-researcher.md':   { slug: 'gsd-project-researcher',  name: 'GSD Project Researcher',  groups: ['read','edit','command','mcp'], whenToUse: 'Researches project domain during new project initialization. Spawned by /gsd-new-project.' },
-    'gsd-research-synthesizer.md': { slug: 'gsd-research-synthesizer',name: 'GSD Research Synthesizer',groups: ['read','edit'],               whenToUse: 'Synthesizes parallel research findings into a single RESEARCH.md. Spawned by /gsd-plan-phase.' },
+    'gsd-research-synthesizer.md': { slug: 'gsd-research-synthesizer',name: 'GSD Research Synthesizer',groups: ['read','edit','command'],      whenToUse: 'Synthesizes parallel research findings into a single RESEARCH.md. Spawned by /gsd-plan-phase.' },
     'gsd-codebase-mapper.md':      { slug: 'gsd-codebase-mapper',     name: 'GSD Codebase Mapper',     groups: ['read','edit','command'],      whenToUse: 'Maps an existing codebase into structured .planning/codebase/ documents. Spawned by /gsd-map-codebase.' },
-    'gsd-roadmapper.md':           { slug: 'gsd-roadmapper',          name: 'GSD Roadmapper',          groups: ['read','edit'],               whenToUse: 'Generates ROADMAP.md from project requirements. Spawned by /gsd-new-project.' },
+    'gsd-roadmapper.md':           { slug: 'gsd-roadmapper',          name: 'GSD Roadmapper',          groups: ['read','edit','command'],      whenToUse: 'Generates ROADMAP.md from project requirements. Spawned by /gsd-new-project.' },
     'gsd-debugger.md':             { slug: 'gsd-debugger',            name: 'GSD Debugger',            groups: ['read','edit','command'],      whenToUse: 'Performs systematic debugging using scientific method. Spawned by /gsd-debug.' },
-    'gsd-verifier.md':             { slug: 'gsd-verifier',            name: 'GSD Verifier',            groups: ['read','command'],            whenToUse: 'Verifies that a phase achieved its goal after execution. Spawned by /gsd-execute-phase and /gsd-verify-work.' },
-    'gsd-plan-checker.md':         { slug: 'gsd-plan-checker',        name: 'GSD Plan Checker',        groups: ['read'],                      whenToUse: 'Verifies PLAN.md quality and completeness before execution. Spawned by /gsd-plan-phase.' },
+    'gsd-verifier.md':             { slug: 'gsd-verifier',            name: 'GSD Verifier',            groups: ['read','edit','command'],      whenToUse: 'Verifies that a phase achieved its goal after execution. Spawned by /gsd-execute-phase and /gsd-verify-work.' },
+    'gsd-plan-checker.md':         { slug: 'gsd-plan-checker',        name: 'GSD Plan Checker',        groups: ['read','command'],            whenToUse: 'Verifies PLAN.md quality and completeness before execution. Spawned by /gsd-plan-phase.' },
     'gsd-integration-checker.md':  { slug: 'gsd-integration-checker', name: 'GSD Integration Checker', groups: ['read','command'],            whenToUse: 'Validates integration completeness across milestone phases. Spawned by /gsd-audit-milestone.' },
+    'gsd-nyquist-auditor.md':      { slug: 'gsd-nyquist-auditor',     name: 'GSD Nyquist Auditor',     groups: ['read','edit','command'],      whenToUse: 'Fills Nyquist validation gaps by generating tests and verifying coverage for phase requirements. Spawned by /gsd-audit-milestone.' },
+    'gsd-ui-auditor.md':           { slug: 'gsd-ui-auditor',          name: 'GSD UI Auditor',          groups: ['read','edit','command'],      whenToUse: 'Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd-ui-review.' },
+    'gsd-ui-checker.md':           { slug: 'gsd-ui-checker',          name: 'GSD UI Checker',          groups: ['read','command'],            whenToUse: 'Validates UI-SPEC.md design contracts against 6 quality dimensions. Produces BLOCK/FLAG/PASS verdicts. Spawned by /gsd-ui-phase.' },
+    'gsd-ui-researcher.md':        { slug: 'gsd-ui-researcher',       name: 'GSD UI Researcher',       groups: ['read','edit','command','mcp'], whenToUse: 'Produces UI-SPEC.md design contract for frontend phases. Spawned by /gsd-ui-phase.' },
+    'gsd-user-profiler.md':        { slug: 'gsd-user-profiler',       name: 'GSD User Profiler',       groups: ['read'],                      whenToUse: 'Analyzes extracted session messages to produce a scored developer profile. Spawned by /gsd-profile-user.' },
   };
 
   const modesEntries = [];
@@ -1240,6 +1245,9 @@ function installRooModes(targetDir, agentsSrc, isGlobal) {
 
     // Apply CLAUDE.md → .roo/rules reference update
     roleDefinition = updateProjectInstructionsForRoo(roleDefinition);
+
+    // Apply runtime-neutral agent name replacement (standalone "Claude" → "the agent", CLAUDE.md → Roo equivalent)
+    roleDefinition = neutralizeAgentReferences(roleDefinition, null);
 
     // Update tool names in prose instructions
     roleDefinition = roleDefinition.replace(/`Read` tool/g, '`read_file` tool');
@@ -2285,10 +2293,12 @@ function cleanupOrphanedHooks(settings) {
  */
 function uninstall(isGlobal, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
+  const isGemini = runtime === 'gemini';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
   const isAntigravity = runtime === 'antigravity';
   const isCursor = runtime === 'cursor';
+  const isRoo = runtime === 'roo';
   const dirName = getDirName(runtime);
 
   // Get the target directory based on runtime and install type
@@ -2301,13 +2311,13 @@ function uninstall(isGlobal, runtime = 'claude') {
     : targetDir.replace(process.cwd(), '.');
 
   let runtimeLabel = 'Claude Code';
-  if (runtime === 'opencode') runtimeLabel = 'OpenCode';
-  if (runtime === 'gemini') runtimeLabel = 'Gemini';
-  if (runtime === 'codex') runtimeLabel = 'Codex';
-  if (runtime === 'copilot') runtimeLabel = 'Copilot';
-  if (runtime === 'antigravity') runtimeLabel = 'Antigravity';
-  if (runtime === 'cursor') runtimeLabel = 'Cursor';
-  if (runtime === 'roo') runtimeLabel = 'Roo Code';
+  if (isOpencode) runtimeLabel = 'OpenCode';
+  if (isGemini) runtimeLabel = 'Gemini';
+  if (isCodex) runtimeLabel = 'Codex';
+  if (isCopilot) runtimeLabel = 'Copilot';
+  if (isAntigravity) runtimeLabel = 'Antigravity';
+  if (isCursor) runtimeLabel = 'Cursor';
+  if (isRoo) runtimeLabel = 'Roo Code';
 
   console.log(`  Uninstalling GSD from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
 
@@ -2367,11 +2377,11 @@ function uninstall(isGlobal, runtime = 'claude') {
     }
     if (fs.existsSync(customModesPath)) {
       const existing = fs.readFileSync(customModesPath, 'utf8');
-      // Split on "- slug:" boundaries, discard gsd-* blocks
-      const parts = existing.split(/(?=^- slug:)/m);
+      // Split on "  - slug:" boundaries (2-space indent, matching installRooModes output), discard gsd-* blocks
+      const parts = existing.split(/(?=^  - slug:)/m);
       const header = parts[0];
       const kept = parts.slice(1).filter(block => {
-        const m = block.match(/^- slug:\s*(\S+)/);
+        const m = block.match(/^  - slug:\s*(\S+)/);
         return !m || !m[1].startsWith('gsd-');
       });
       const cleaned = header + kept.join('');
@@ -2917,8 +2927,10 @@ function writeManifest(configDir, runtime = 'claude') {
   const isCopilot = runtime === 'copilot';
   const isAntigravity = runtime === 'antigravity';
   const isCursor = runtime === 'cursor';
+  const isRoo = runtime === 'roo';
   const gsdDir = path.join(configDir, 'get-shit-done');
   const commandsDir = path.join(configDir, 'commands', 'gsd');
+  const rooCommandDir = path.join(configDir, 'commands');
   const opencodeCommandDir = path.join(configDir, 'command');
   const codexSkillsDir = path.join(configDir, 'skills');
   const agentsDir = path.join(configDir, 'agents');
@@ -2928,10 +2940,17 @@ function writeManifest(configDir, runtime = 'claude') {
   for (const [rel, hash] of Object.entries(gsdHashes)) {
     manifest.files['get-shit-done/' + rel] = hash;
   }
-  if (!isOpencode && !isCodex && !isCopilot && !isAntigravity && !isCursor && fs.existsSync(commandsDir)) {
+  if (!isOpencode && !isCodex && !isCopilot && !isAntigravity && !isCursor && !isRoo && fs.existsSync(commandsDir)) {
     const cmdHashes = generateManifest(commandsDir);
     for (const [rel, hash] of Object.entries(cmdHashes)) {
       manifest.files['commands/gsd/' + rel] = hash;
+    }
+  }
+  if (isRoo && fs.existsSync(rooCommandDir)) {
+    for (const file of fs.readdirSync(rooCommandDir)) {
+      if (file.startsWith('gsd-') && file.endsWith('.md')) {
+        manifest.files['commands/' + file] = fileHash(path.join(rooCommandDir, file));
+      }
     }
   }
   if (isOpencode && fs.existsSync(opencodeCommandDir)) {
@@ -3260,7 +3279,7 @@ function install(isGlobal, runtime = 'claude') {
     failures.push('VERSION');
   }
 
-  if (!isCodex && !isCopilot && !isCursor) {
+  if (!isCodex && !isCopilot && !isCursor && !isRoo) {
     // Write package.json to force CommonJS mode for GSD scripts
     // Prevents "require is not defined" errors when project has "type": "module"
     // Node.js walks up looking for package.json - this stops inheritance from project

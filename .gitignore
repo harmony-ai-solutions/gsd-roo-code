@@ -10,6 +10,9 @@ commands.html
 .roo/
 .roomodes
 
+# IDE stuff
+/.idea
+
 # Build artifacts (committed to npm, not git)
 hooks/dist/
 

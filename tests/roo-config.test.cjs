@@ -14,10 +14,14 @@ const path = require('path');
 const os = require('os');
 
 const {
+  getDirName,
+  getGlobalDir,
+  getConfigDirFromHome,
   replacePathsForRoo,
   convertCommandForRoo,
   installRooModes,
   copyFlattenedCommands,
+  writeManifest,
 } = require('../bin/install.js');
 
 // ─── replacePathsForRoo ───────────────────────────────────────────────────────
@@ -150,5 +154,148 @@ describe('Roo workflow files path replacement (integration)', () => {
       assert.ok(!content.includes('$HOME/.claude/'), `File ${file} still contains $HOME/.claude/ reference`);
       assert.ok(!content.includes('~/.claude/'), `File ${file} still contains ~/.claude/ reference`);
     }
+  });
+});
+
+// ─── getDirName (Roo) ─────────────────────────────────────────────────────────
+
+describe('getDirName (Roo)', () => {
+  test('returns .roo for roo', () => {
+    assert.strictEqual(getDirName('roo'), '.roo');
+  });
+
+  test('does not break existing runtimes', () => {
+    assert.strictEqual(getDirName('claude'), '.claude');
+    assert.strictEqual(getDirName('opencode'), '.opencode');
+    assert.strictEqual(getDirName('gemini'), '.gemini');
+    assert.strictEqual(getDirName('codex'), '.codex');
+    assert.strictEqual(getDirName('copilot'), '.github');
+    assert.strictEqual(getDirName('antigravity'), '.agent');
+    assert.strictEqual(getDirName('cursor'), '.cursor');
+  });
+});
+
+// ─── getGlobalDir (Roo) ───────────────────────────────────────────────────────
+
+describe('getGlobalDir (Roo)', () => {
+  let savedEnv;
+
+  beforeEach(() => {
+    savedEnv = process.env.ROO_CONFIG_DIR;
+    delete process.env.ROO_CONFIG_DIR;
+  });
+
+  afterEach(() => {
+    if (savedEnv !== undefined) {
+      process.env.ROO_CONFIG_DIR = savedEnv;
+    } else {
+      delete process.env.ROO_CONFIG_DIR;
+    }
+  });
+
+  test('returns ~/.roo by default', () => {
+    const result = getGlobalDir('roo');
+    assert.strictEqual(result, path.join(os.homedir(), '.roo'));
+  });
+
+  test('respects ROO_CONFIG_DIR env var', () => {
+    const customDir = path.join(os.homedir(), 'custom-roo');
+    process.env.ROO_CONFIG_DIR = customDir;
+    const result = getGlobalDir('roo');
+    assert.strictEqual(result, customDir);
+  });
+
+  test('explicit config-dir overrides env var', () => {
+    process.env.ROO_CONFIG_DIR = path.join(os.homedir(), 'from-env');
+    const explicit = path.join(os.homedir(), 'explicit-roo');
+    const result = getGlobalDir('roo', explicit);
+    assert.strictEqual(result, explicit);
+  });
+
+  test('does not change Claude Code global dir', () => {
+    assert.strictEqual(getGlobalDir('claude'), path.join(os.homedir(), '.claude'));
+  });
+});
+
+// ─── getConfigDirFromHome (Roo) ───────────────────────────────────────────────
+
+describe('getConfigDirFromHome (Roo)', () => {
+  test('returns .roo for local installs', () => {
+    assert.strictEqual(getConfigDirFromHome('roo', false), "'.roo'");
+  });
+
+  test('returns .roo for global installs', () => {
+    assert.strictEqual(getConfigDirFromHome('roo', true), "'.roo'");
+  });
+
+  test('does not change other runtimes', () => {
+    assert.strictEqual(getConfigDirFromHome('claude', true), "'.claude'");
+    assert.strictEqual(getConfigDirFromHome('gemini', true), "'.gemini'");
+    assert.strictEqual(getConfigDirFromHome('copilot', true), "'.copilot'");
+    assert.strictEqual(getConfigDirFromHome('antigravity', true), "'.gemini', 'antigravity'");
+  });
+});
+
+// ─── writeManifest (Roo) ─────────────────────────────────────────────────────
+
+describe('writeManifest (Roo)', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-manifest-roo-'));
+    // Create minimal Roo structure: commands/gsd-*.md + get-shit-done/ + agents/
+    const commandsDir = path.join(tmpDir, 'commands');
+    fs.mkdirSync(commandsDir, { recursive: true });
+    fs.writeFileSync(path.join(commandsDir, 'gsd-new-project.md'), '---\ndescription: New project\n---\n');
+    fs.writeFileSync(path.join(commandsDir, 'gsd-help.md'), '---\ndescription: Help\n---\n');
+    const gsdDir = path.join(tmpDir, 'get-shit-done');
+    fs.mkdirSync(gsdDir, { recursive: true });
+    fs.writeFileSync(path.join(gsdDir, 'VERSION'), '1.0.0');
+    const agentsDir = path.join(tmpDir, 'agents');
+    fs.mkdirSync(agentsDir, { recursive: true });
+    fs.writeFileSync(path.join(agentsDir, 'gsd-executor.md'), '---\nname: gsd-executor\n---\n');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('writes manifest JSON file', () => {
+    writeManifest(tmpDir, 'roo');
+    const manifestPath = path.join(tmpDir, 'gsd-file-manifest.json');
+    assert.ok(fs.existsSync(manifestPath), 'manifest file should exist');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    assert.ok(manifest.version, 'should have version');
+    assert.ok(manifest.files, 'should have files');
+  });
+
+  test('manifest includes Roo commands/ directory files', () => {
+    writeManifest(tmpDir, 'roo');
+    const manifest = JSON.parse(fs.readFileSync(path.join(tmpDir, 'gsd-file-manifest.json'), 'utf8'));
+    const commandFiles = Object.keys(manifest.files).filter(f => f.startsWith('commands/'));
+    assert.ok(commandFiles.length > 0, 'should have command files in manifest');
+    assert.ok(commandFiles.some(f => f === 'commands/gsd-new-project.md'), 'should include gsd-new-project.md');
+    assert.ok(commandFiles.some(f => f === 'commands/gsd-help.md'), 'should include gsd-help.md');
+  });
+
+  test('manifest includes agent files', () => {
+    writeManifest(tmpDir, 'roo');
+    const manifest = JSON.parse(fs.readFileSync(path.join(tmpDir, 'gsd-file-manifest.json'), 'utf8'));
+    const agentFiles = Object.keys(manifest.files).filter(f => f.startsWith('agents/'));
+    assert.ok(agentFiles.length > 0, 'should have agent files in manifest');
+  });
+
+  test('manifest includes get-shit-done/ files', () => {
+    writeManifest(tmpDir, 'roo');
+    const manifest = JSON.parse(fs.readFileSync(path.join(tmpDir, 'gsd-file-manifest.json'), 'utf8'));
+    const gsdFiles = Object.keys(manifest.files).filter(f => f.startsWith('get-shit-done/'));
+    assert.ok(gsdFiles.length > 0, 'should have get-shit-done files in manifest');
+  });
+
+  test('does not track commands/gsd/ nested path (Roo uses flat commands/)', () => {
+    writeManifest(tmpDir, 'roo');
+    const manifest = JSON.parse(fs.readFileSync(path.join(tmpDir, 'gsd-file-manifest.json'), 'utf8'));
+    const nestedGsd = Object.keys(manifest.files).filter(f => f.startsWith('commands/gsd/'));
+    assert.strictEqual(nestedGsd.length, 0, 'should not track commands/gsd/ nested path for Roo');
   });
 });
