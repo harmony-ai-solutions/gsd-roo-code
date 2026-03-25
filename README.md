@@ -4,7 +4,7 @@
 
 **English** · [Português](README.pt-BR.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja-JP.md) · [한국어](README.ko-KR.md)
 
-**A light-weight and powerful meta-prompting, context engineering and spec-driven development system for Claude Code, OpenCode, Gemini CLI, Codex, Copilot, and Antigravity.**
+**A light-weight and powerful meta-prompting, context engineering and spec-driven development system for Claude Code, OpenCode, Gemini CLI, Codex, Copilot, Cursor, Windsurf, and Antigravity.**
 
 **Solves context rot — the quality degradation that happens as Claude fills its context window.**
 
@@ -82,7 +82,7 @@ npx get-shit-done-cc@latest
 ```
 
 The installer prompts you to choose:
-1. **Runtime** — Claude Code, OpenCode, Gemini, Codex, Copilot, Cursor, Antigravity, or all (interactive multi-select — pick multiple runtimes in a single install session)
+1. **Runtime** — Claude Code, OpenCode, Gemini, Codex, Copilot, Cursor, Windsurf, Antigravity, or all (interactive multi-select — pick multiple runtimes in a single install session)
 2. **Location** — Global (all projects) or local (current project only)
 
 Verify with:
@@ -129,6 +129,10 @@ npx get-shit-done-cc --copilot --local   # Install to ./.github/
 npx get-shit-done-cc --cursor --global      # Install to ~/.cursor/
 npx get-shit-done-cc --cursor --local       # Install to ./.cursor/
 
+# Windsurf (Codeium, VS Code-based)
+npx get-shit-done-cc --windsurf --global    # Install to ~/.windsurf/
+npx get-shit-done-cc --windsurf --local     # Install to ./.windsurf/
+
 # Antigravity (Google, skills-first, Gemini-based)
 npx get-shit-done-cc --antigravity --global # Install to ~/.gemini/antigravity/
 npx get-shit-done-cc --antigravity --local  # Install to ./.agent/
@@ -138,7 +142,7 @@ npx get-shit-done-cc --all --global      # Install to all directories
 ```
 
 Use `--global` (`-g`) or `--local` (`-l`) to skip the location prompt.
-Use `--claude`, `--opencode`, `--gemini`, `--codex`, `--copilot`, `--cursor`, `--antigravity`, or `--all` to skip the runtime prompt.
+Use `--claude`, `--opencode`, `--gemini`, `--codex`, `--copilot`, `--cursor`, `--windsurf`, `--antigravity`, or `--all` to skip the runtime prompt.
 
 </details>
 
@@ -675,6 +679,16 @@ Use `/gsd:settings` to toggle these, or override per-invocation:
 | `planning.commit_docs` | `true` | Track `.planning/` in git |
 | `hooks.context_warnings` | `true` | Show context window usage warnings |
 
+### Agent Skills
+
+Inject project-specific skills into subagents during execution.
+
+| Setting | Type | What it does |
+|---------|------|--------------|
+| `agent_skills.<agent_type>` | `string[]` | Paths to skill directories loaded into that agent type at spawn time |
+
+Skills are injected as `<agent_skills>` blocks in agent prompts, giving subagents access to project-specific knowledge.
+
 ### Git Branching
 
 Control how GSD handles branches during execution.
@@ -775,6 +789,7 @@ npx get-shit-done-cc --gemini --global --uninstall
 npx get-shit-done-cc --codex --global --uninstall
 npx get-shit-done-cc --copilot --global --uninstall
 npx get-shit-done-cc --cursor --global --uninstall
+npx get-shit-done-cc --windsurf --global --uninstall
 npx get-shit-done-cc --antigravity --global --uninstall
 
 # Local installs (current project)
@@ -784,6 +799,7 @@ npx get-shit-done-cc --gemini --local --uninstall
 npx get-shit-done-cc --codex --local --uninstall
 npx get-shit-done-cc --copilot --local --uninstall
 npx get-shit-done-cc --cursor --local --uninstall
+npx get-shit-done-cc --windsurf --local --uninstall
 npx get-shit-done-cc --antigravity --local --uninstall
 ```
 
