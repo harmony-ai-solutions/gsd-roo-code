@@ -7,6 +7,11 @@ commands.html
 
 # Local test installs
 .claude/
+.roo/
+.roomodes
+
+# IDE stuff
+/.idea
 
 # Build artifacts (committed to npm, not git)
 hooks/dist/

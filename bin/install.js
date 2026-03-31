@@ -68,6 +68,7 @@ const hasAntigravity = args.includes('--antigravity');
 const hasCursor = args.includes('--cursor');
 const hasWindsurf = args.includes('--windsurf');
 const hasSdk = args.includes('--sdk');
+const hasRoo = args.includes('--roo');
 const hasBoth = args.includes('--both'); // Legacy flag, keeps working
 const hasAll = args.includes('--all');
 const hasUninstall = args.includes('--uninstall') || args.includes('-u');
@@ -75,7 +76,7 @@ const hasUninstall = args.includes('--uninstall') || args.includes('-u');
 // Runtime selection - can be set by flags or interactive prompt
 let selectedRuntimes = [];
 if (hasAll) {
-  selectedRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'antigravity', 'cursor', 'windsurf'];
+  selectedRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'antigravity', 'cursor', 'windsurf', 'roo'];
 } else if (hasBoth) {
   selectedRuntimes = ['claude', 'opencode'];
 } else {
@@ -87,6 +88,7 @@ if (hasAll) {
   if (hasAntigravity) selectedRuntimes.push('antigravity');
   if (hasCursor) selectedRuntimes.push('cursor');
   if (hasWindsurf) selectedRuntimes.push('windsurf');
+  if (hasRoo) selectedRuntimes.push('roo');
 }
 
 // WSL + Windows Node.js detection
@@ -132,13 +134,14 @@ function getDirName(runtime) {
   if (runtime === 'antigravity') return '.agent';
   if (runtime === 'cursor') return '.cursor';
   if (runtime === 'windsurf') return '.windsurf';
+  if (runtime === 'roo') return '.roo';
   return '.claude';
 }
 
 /**
  * Get the config directory path relative to home directory for a runtime
  * Used for templating hooks that use path.join(homeDir, '<configDir>', ...)
- * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', or 'copilot'
+ * @param {string} runtime - 'claude', 'opencode', 'gemini', 'codex', or 'copilot', or 'antigravity', or 'cursor', or 'roo'
  * @param {boolean} isGlobal - Whether this is a global install
  */
 function getConfigDirFromHome(runtime, isGlobal) {
@@ -161,6 +164,7 @@ function getConfigDirFromHome(runtime, isGlobal) {
   }
   if (runtime === 'cursor') return "'.cursor'";
   if (runtime === 'windsurf') return "'.windsurf'";
+  if (runtime === 'roo') return "'.roo'";
   return "'.claude'";
 }
 
@@ -174,17 +178,17 @@ function getOpencodeGlobalDir() {
   if (process.env.OPENCODE_CONFIG_DIR) {
     return expandTilde(process.env.OPENCODE_CONFIG_DIR);
   }
-  
+
   // 2. OPENCODE_CONFIG env var (use its directory)
   if (process.env.OPENCODE_CONFIG) {
     return path.dirname(expandTilde(process.env.OPENCODE_CONFIG));
   }
-  
+
   // 3. XDG_CONFIG_HOME/opencode
   if (process.env.XDG_CONFIG_HOME) {
     return path.join(expandTilde(process.env.XDG_CONFIG_HOME), 'opencode');
   }
-  
+
   // 4. Default: ~/.config/opencode (XDG default)
   return path.join(os.homedir(), '.config', 'opencode');
 }
@@ -202,7 +206,7 @@ function getGlobalDir(runtime, explicitDir = null) {
     }
     return getOpencodeGlobalDir();
   }
-  
+
   if (runtime === 'gemini') {
     // Gemini: --config-dir > GEMINI_CONFIG_DIR > ~/.gemini
     if (explicitDir) {
@@ -269,6 +273,16 @@ function getGlobalDir(runtime, explicitDir = null) {
     return path.join(os.homedir(), '.windsurf');
   }
 
+  if (runtime === 'roo') {
+    // Roo: --config-dir > ROO_CONFIG_DIR > ~/.roo
+    if (explicitDir) {
+      return expandTilde(explicitDir);
+    }
+    if (process.env.ROO_CONFIG_DIR) {
+      return expandTilde(process.env.ROO_CONFIG_DIR);
+    }
+    return path.join(os.homedir(), '.roo');
+  }
 
   // Claude Code: --config-dir > CLAUDE_CONFIG_DIR > ~/.claude
   if (explicitDir) {
@@ -290,7 +304,7 @@ const banner = '\n' +
   '\n' +
   '  Get Shit Done ' + dim + 'v' + pkg.version + reset + '\n' +
   '  A meta-prompting, context engineering and spec-driven\n' +
-  '  development system for Claude Code, OpenCode, Gemini, Codex, Copilot, Antigravity, Cursor, and Windsurf by TÂCHES.\n';
+  '  development system for Claude Code, OpenCode, Gemini, Codex, Copilot, Antigravity, Cursor, Windsurf, and Roo Code by TÂCHES.\n';
 
 // Parse --config-dir argument
 function parseConfigDirArg() {
@@ -328,7 +342,91 @@ if (hasUninstall) {
 
 // Show help if requested
 if (hasHelp) {
-  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--copilot${reset}                 Install for Copilot only\n    ${cyan}--antigravity${reset}             Install for Antigravity only\n    ${cyan}--cursor${reset}                  Install for Cursor only\n    ${cyan}--windsurf${reset}                Install for Windsurf only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}--sdk${reset}                     Also install GSD SDK CLI (gsd-sdk)\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for Codex globally${reset}\n    npx get-shit-done-cc --codex --global\n\n    ${dim}# Install for Copilot globally${reset}\n    npx get-shit-done-cc --copilot --global\n\n    ${dim}# Install for Copilot locally${reset}\n    npx get-shit-done-cc --copilot --local\n\n    ${dim}# Install for Antigravity globally${reset}\n    npx get-shit-done-cc --antigravity --global\n\n    ${dim}# Install for Antigravity locally${reset}\n    npx get-shit-done-cc --antigravity --local\n\n    ${dim}# Install for Cursor globally${reset}\n    npx get-shit-done-cc --cursor --global\n\n    ${dim}# Install for Cursor locally${reset}\n    npx get-shit-done-cc --cursor --local\n\n    ${dim}# Install for Windsurf globally${reset}\n    npx get-shit-done-cc --windsurf --global\n\n    ${dim}# Install for Windsurf locally${reset}\n    npx get-shit-done-cc --windsurf --local\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --codex --global --config-dir ~/.codex-work\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Cursor globally${reset}\n    npx get-shit-done-cc --cursor --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME / COPILOT_CONFIG_DIR / ANTIGRAVITY_CONFIG_DIR / CURSOR_CONFIG_DIR / WINDSURF_CONFIG_DIR environment variables.\n`);
+  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]`);
+  console.log('');
+  console.log(`  ${yellow}Options:${reset}`);
+  console.log(`    ${cyan}-g, --global${reset}              Install globally (to config directory)`);
+  console.log(`    ${cyan}-l, --local${reset}               Install locally (to current directory)`);
+  console.log(`    ${cyan}--claude${reset}                  Install for Claude Code only`);
+  console.log(`    ${cyan}--opencode${reset}                Install for OpenCode only`);
+  console.log(`    ${cyan}--gemini${reset}                  Install for Gemini only`);
+  console.log(`    ${cyan}--codex${reset}                   Install for Codex only`);
+  console.log(`    ${cyan}--copilot${reset}                 Install for Copilot only`);
+  console.log(`    ${cyan}--antigravity${reset}             Install for Antigravity only`);
+  console.log(`    ${cyan}--cursor${reset}                  Install for Cursor only`);
+  console.log(`    ${cyan}--windsurf${reset}                Install for Windsurf only`);
+  console.log(`    ${cyan}--roo${reset}                     Install for Roo Code only`);
+  console.log(`    ${cyan}--all${reset}                     Install for all runtimes`);
+  console.log(`    ${cyan}--sdk${reset}                     Also install GSD SDK CLI (gsd-sdk)`);
+  console.log(`    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)`);
+  console.log(`    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory`);
+  console.log(`    ${cyan}-h, --help${reset}                Show this help message`);
+  console.log(`    ${cyan}--force-statusline${reset}        Replace existing statusline config`);
+  console.log('');
+  console.log(`  ${yellow}Examples:${reset}`);
+  console.log(`    ${dim}# Interactive install (prompts for runtime and location)${reset}`);
+  console.log('    npx get-shit-done-cc');
+  console.log('');
+  console.log(`    ${dim}# Install for Claude Code globally${reset}`);
+  console.log('    npx get-shit-done-cc --claude --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Gemini globally${reset}`);
+  console.log('    npx get-shit-done-cc --gemini --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Codex globally${reset}`);
+  console.log('    npx get-shit-done-cc --codex --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Copilot globally${reset}`);
+  console.log('    npx get-shit-done-cc --copilot --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Copilot locally${reset}`);
+  console.log('    npx get-shit-done-cc --copilot --local');
+  console.log('');
+  console.log(`    ${dim}# Install for Antigravity globally${reset}`);
+  console.log('    npx get-shit-done-cc --antigravity --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Antigravity locally${reset}`);
+  console.log('    npx get-shit-done-cc --antigravity --local');
+  console.log('');
+  console.log(`    ${dim}# Install for Cursor globally${reset}`);
+  console.log('    npx get-shit-done-cc --cursor --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Cursor locally${reset}`);
+  console.log('    npx get-shit-done-cc --cursor --local');
+  console.log('');
+  console.log(`    ${dim}# Install for Windsurf globally${reset}`);
+  console.log('    npx get-shit-done-cc --windsurf --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Windsurf locally${reset}`);
+  console.log('    npx get-shit-done-cc --windsurf --local');
+  console.log('');
+  console.log(`    ${dim}# Install for Roo Code globally${reset}`);
+  console.log('    npx get-shit-done-cc --roo --global');
+  console.log('');
+  console.log(`    ${dim}# Install for Roo Code locally${reset}`);
+  console.log('    npx get-shit-done-cc --roo --local');
+  console.log('');
+  console.log(`    ${dim}# Install for all runtimes globally${reset}`);
+  console.log('    npx get-shit-done-cc --all --global');
+  console.log('');
+  console.log(`    ${dim}# Install to custom config directory${reset}`);
+  console.log('    npx get-shit-done-cc --codex --global --config-dir ~/.codex-work');
+  console.log('');
+  console.log(`    ${dim}# Install to custom Roo config directory${reset}`);
+  console.log('    npx get-shit-done-cc --roo --global --config-dir ~/.roo-work');
+  console.log('');
+  console.log(`    ${dim}# Install to current project only${reset}`);
+  console.log('    npx get-shit-done-cc --claude --local');
+  console.log('');
+  console.log(`    ${dim}# Uninstall GSD from Cursor globally${reset}`);
+  console.log('    npx get-shit-done-cc --cursor --global --uninstall');
+  console.log('');
+  console.log(`    ${dim}# Uninstall GSD from Roo globally${reset}`);
+  console.log('    npx get-shit-done-cc --roo --global --uninstall');
+  console.log('');
+  console.log(`  ${yellow}Notes:${reset}`);
+  console.log('    The --config-dir option is useful when you have multiple configurations.');
+  console.log('    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME / COPILOT_CONFIG_DIR / ANTIGRAVITY_CONFIG_DIR / CURSOR_CONFIG_DIR / WINDSURF_CONFIG_DIR / ROO_CONFIG_DIR environment variables.');
   process.exit(0);
 }
 
@@ -424,7 +522,7 @@ function getCommitAttribution(runtime) {
       result = settings.attribution.commit;
     }
   } else {
-    // Codex and Copilot currently have no attribution setting equivalent
+    // Codex, Copilot, Antigravity, Cursor, and Roo currently have no attribution setting equivalent
     result = undefined;
   }
 
@@ -2356,6 +2454,199 @@ function installCodexConfig(targetDir, agentsSrc) {
 }
 
 /**
+ * Install Roo custom modes from GSD agents
+ * @param {string} targetDir - Target configuration directory
+ * @param {string} agentsSrc - Source directory for GSD agents
+ * @param {boolean} isGlobal - Whether this is a global install
+ */
+function installRooModes(targetDir, agentsSrc, isGlobal) {
+  if (!fs.existsSync(agentsSrc)) return;
+
+  const agentFiles = fs.readdirSync(agentsSrc).filter(f => f.startsWith('gsd-') && f.endsWith('.md'));
+  if (agentFiles.length === 0) return;
+
+  console.log(`  ${green}✓${reset} Preparing ${agentFiles.length} Roo custom modes`);
+
+  const agentModeMap = {
+    'gsd-executor.md': { slug: 'gsd-executor', name: 'GSD Executor', groups: ['read', 'edit', 'command'], whenToUse: 'Executes GSD PLAN.md files atomically with per-task commits. Spawned by /gsd-execute-phase.' },
+    'gsd-planner.md': { slug: 'gsd-planner', name: 'GSD Planner', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Creates PLAN.md files for GSD phases. Spawned by /gsd-plan-phase.' },
+    'gsd-phase-researcher.md': { slug: 'gsd-phase-researcher', name: 'GSD Phase Researcher', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Researches domain knowledge before phase planning. Spawned by /gsd-plan-phase.' },
+    'gsd-project-researcher.md': { slug: 'gsd-project-researcher', name: 'GSD Project Researcher', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Researches project domain during new project initialization. Spawned by /gsd-new-project.' },
+    'gsd-research-synthesizer.md': { slug: 'gsd-research-synthesizer', name: 'GSD Research Synthesizer', groups: ['read', 'edit', 'command'], whenToUse: 'Synthesizes parallel research findings into a single RESEARCH.md. Spawned by /gsd-plan-phase.' },
+    'gsd-codebase-mapper.md': { slug: 'gsd-codebase-mapper', name: 'GSD Codebase Mapper', groups: ['read', 'edit', 'command'], whenToUse: 'Maps an existing codebase into structured .planning/codebase/ documents. Spawned by /gsd-map-codebase.' },
+    'gsd-roadmapper.md': { slug: 'gsd-roadmapper', name: 'GSD Roadmapper', groups: ['read', 'edit', 'command'], whenToUse: 'Generates ROADMAP.md from project requirements. Spawned by /gsd-new-project.' },
+    'gsd-debugger.md': { slug: 'gsd-debugger', name: 'GSD Debugger', groups: ['read', 'edit', 'command'], whenToUse: 'Performs systematic debugging using scientific method. Spawned by /gsd-debug.' },
+    'gsd-verifier.md': { slug: 'gsd-verifier', name: 'GSD Verifier', groups: ['read', 'edit', 'command'], whenToUse: 'Verifies that a phase achieved its goal after execution. Spawned by /gsd-execute-phase and /gsd-verify-work.' },
+    'gsd-plan-checker.md': { slug: 'gsd-plan-checker', name: 'GSD Plan Checker', groups: ['read', 'command'], whenToUse: 'Verifies PLAN.md quality and completeness before execution. Spawned by /gsd-plan-phase.' },
+    'gsd-integration-checker.md': { slug: 'gsd-integration-checker', name: 'GSD Integration Checker', groups: ['read', 'command'], whenToUse: 'Validates integration completeness across milestone phases. Spawned by /gsd-audit-milestone.' },
+    'gsd-nyquist-auditor.md': { slug: 'gsd-nyquist-auditor', name: 'GSD Nyquist Auditor', groups: ['read', 'edit', 'command'], whenToUse: 'Fills Nyquist validation gaps by generating tests and verifying coverage for phase requirements. Spawned by /gsd-audit-milestone.' },
+    'gsd-ui-auditor.md': { slug: 'gsd-ui-auditor', name: 'GSD UI Auditor', groups: ['read', 'edit', 'command'], whenToUse: 'Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd-ui-review.' },
+    'gsd-ui-checker.md': { slug: 'gsd-ui-checker', name: 'GSD UI Checker', groups: ['read', 'command'], whenToUse: 'Validates UI-SPEC.md design contracts against 6 quality dimensions. Produces BLOCK/FLAG/PASS verdicts. Spawned by /gsd-ui-phase.' },
+    'gsd-ui-researcher.md': { slug: 'gsd-ui-researcher', name: 'GSD UI Researcher', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Produces UI-SPEC.md design contract for frontend phases. Spawned by /gsd-ui-phase.' },
+    'gsd-user-profiler.md': { slug: 'gsd-user-profiler', name: 'GSD User Profiler', groups: ['read'], whenToUse: 'Analyzes extracted session messages to produce a scored developer profile. Spawned by /gsd-profile-user.' },
+  };
+
+  const modesEntries = [];
+
+  for (const file of agentFiles) {
+    const meta = agentModeMap[file] || {
+      slug: file.replace('.md', ''),
+      name: file.replace('.md', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      groups: ['read', 'edit', 'command', 'mcp'],
+      whenToUse: 'GSD autonomous agent'
+    };
+
+    let roleDefinition = fs.readFileSync(path.join(agentsSrc, file), 'utf8');
+    const { body } = extractFrontmatterAndBody(roleDefinition);
+    roleDefinition = body.trim();
+
+    // Apply path conversion
+    roleDefinition = replacePathsForRoo(roleDefinition, isGlobal ? `${targetDir.replace(/\\/g, '/')}/` : `./.roo/`);
+
+    // Apply /gsd:xxx → /gsd-xxx conversion for prose references
+    roleDefinition = roleDefinition.replace(/\/gsd:([a-z][a-z0-9-]*)/g, '/gsd-$1');
+
+    // Apply CLAUDE.md → .roo/rules reference update
+    roleDefinition = updateProjectInstructionsForRoo(roleDefinition);
+
+    // Apply runtime-neutral agent name replacement (standalone "Claude" → "the agent", CLAUDE.md → Roo equivalent)
+    roleDefinition = neutralizeAgentReferences(roleDefinition, null);
+
+    // Update tool names in prose instructions
+    roleDefinition = roleDefinition.replace(/`Read` tool/g, '`read_file` tool');
+    roleDefinition = roleDefinition.replace(/`Write` tool/g, '`write_to_file` tool');
+    roleDefinition = roleDefinition.replace(/`Edit` tool/g, '`apply_diff` tool');
+    roleDefinition = roleDefinition.replace(/`Bash` tool/g, '`execute_command` tool');
+
+    modesEntries.push({
+      slug: meta.slug,
+      name: meta.name,
+      roleDefinition: roleDefinition,
+      whenToUse: meta.whenToUse,
+      groups: meta.groups,
+      source: isGlobal ? 'global' : 'project'
+    });
+  }
+
+  // Determine custom_modes.yaml path
+  // Global: Roo Code stores modes in VS Code's extension globalStorage, not in ~/.roo
+  // Local:  Roo Code reads project-level modes from .roomodes at the workspace root
+  let configPath;
+  if (isGlobal) {
+    if (process.platform === 'win32') {
+      configPath = path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
+    } else if (process.platform === 'darwin') {
+      configPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
+    } else {
+      // Linux / other Unix
+      configPath = path.join(os.homedir(), '.config', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
+    }
+  } else {
+    // Project-level modes: .roomodes at workspace root (YAML format supported)
+    configPath = path.join(process.cwd(), '.roomodes');
+  }
+
+  // Serialise a scalar to YAML — quote only when needed
+  function yamlScalar(s) {
+    if (s === null || s === undefined || s === '') return '""';
+    const str = String(s);
+    if (
+      /[:#\[\]{},|>&*!'"\\%@`]/.test(str) ||
+      /^\s|\s$/.test(str) ||
+      /^(true|false|null|yes|no|on|off)$/i.test(str)
+    ) {
+      return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+    }
+    return str;
+  }
+
+  // Serialise a single mode entry to YAML lines (indented 2 spaces under "customModes:")
+  // Correct format:
+  //   customModes:
+  //     - slug: my-mode
+  //       name: My Mode
+  //       roleDefinition: |
+  //         ...
+  function modeToYamlLines(mode) {
+    const lines = [];
+    lines.push(`  - slug: ${yamlScalar(mode.slug)}`);
+    lines.push(`    name: ${yamlScalar(mode.name)}`);
+    // roleDefinition is multi-line — use a YAML literal block scalar
+    lines.push('    roleDefinition: |');
+    for (const line of mode.roleDefinition.split('\n')) {
+      lines.push(line.length > 0 ? '      ' + line : '');
+    }
+    if (mode.whenToUse) {
+      lines.push(`    whenToUse: ${yamlScalar(mode.whenToUse)}`);
+    }
+    lines.push('    groups:');
+    for (const g of mode.groups) {
+      lines.push(`    - ${yamlScalar(g)}`);
+    }
+    if (mode.source) {
+      lines.push(`    source: ${yamlScalar(mode.source)}`);
+    }
+    return lines;
+  }
+
+  // Merge GSD modes into an existing custom_modes.yaml, preserving non-GSD entries.
+  // Strategy: split on "  - slug:" boundaries (2-space indent under customModes:),
+  // discard old gsd-* blocks, append new ones.
+  function mergeRooCustomModes(existingContent, newEntries) {
+    // Split into blocks; each starts with "  - slug:" (2-space indent)
+    const parts = existingContent.split(/(?=^  - slug:)/m);
+    const header = parts[0]; // "customModes:\n" or similar leading content
+    const existingBlocks = parts.slice(1);
+
+    // Keep only non-GSD entries
+    const kept = existingBlocks.filter(block => {
+      const m = block.match(/^  - slug:\s*(\S+)/);
+      return !m || !m[1].startsWith('gsd-');
+    });
+
+    const gsdYamlLines = [];
+    for (const entry of newEntries) {
+      gsdYamlLines.push(...modeToYamlLines(entry));
+    }
+
+    return header + kept.join('') + gsdYamlLines.join('\n') + '\n';
+  }
+
+  // Build the YAML to write / display
+  const freshYamlLines = ['customModes:'];
+  for (const mode of modesEntries) {
+    freshYamlLines.push(...modeToYamlLines(mode));
+  }
+  const freshYaml = freshYamlLines.join('\n') + '\n';
+
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+
+  if (isGlobal) {
+    // For global installs, auto-merge into the existing file when possible
+    if (fs.existsSync(configPath)) {
+      const existing = fs.readFileSync(configPath, 'utf8');
+      const merged = mergeRooCustomModes(existing, modesEntries);
+      fs.writeFileSync(configPath, merged);
+      console.log(`  ${green}✓${reset} Merged GSD modes into ${cyan}${configPath.replace(os.homedir(), '~')}${reset}`);
+    } else {
+      fs.writeFileSync(configPath, freshYaml);
+      console.log(`  ${green}✓${reset} Wrote Roo modes to ${cyan}${configPath.replace(os.homedir(), '~')}${reset}`);
+    }
+  } else {
+    // Local install — merge or create .roomodes at the project root
+    if (fs.existsSync(configPath)) {
+      const existing = fs.readFileSync(configPath, 'utf8');
+      const merged = mergeRooCustomModes(existing, modesEntries);
+      fs.writeFileSync(configPath, merged);
+      console.log(`  ${green}✓${reset} Merged GSD modes into ${cyan}.roomodes${reset}`);
+    } else {
+      fs.writeFileSync(configPath, freshYaml);
+      console.log(`  ${green}✓${reset} Wrote local Roo modes to ${cyan}.roomodes${reset}`);
+    }
+  }
+}
+
+/**
  * Strip HTML <sub> tags for Gemini CLI output
  * Terminals don't support subscript — Gemini renders these as raw HTML.
  * Converts <sub>text</sub> to italic *(text)* for readable terminal output.
@@ -2667,7 +2958,7 @@ function convertClaudeToGeminiToml(content) {
 
   const frontmatter = content.substring(3, endIndex).trim();
   const body = content.substring(endIndex + 3).trim();
-  
+
   // Extract description from frontmatter
   let description = '';
   const lines = frontmatter.split('\n');
@@ -2684,10 +2975,111 @@ function convertClaudeToGeminiToml(content) {
   if (description) {
     toml += `description = ${JSON.stringify(description)}\n`;
   }
-  
+
   toml += `prompt = ${JSON.stringify(body)}\n`;
-  
+
   return toml;
+}
+
+/**
+ * Convert a Claude Code command to a Roo Code slash command
+ * - Replaces Claude tools with Roo equivalents
+ * - Replaces @ references with context remarks
+ * - Replaces .claude path references
+ * @param {string} content - Original markdown content
+ * @param {string} pathPrefix - Global path prefix for references
+ */
+function convertCommandForRoo(content, pathPrefix) {
+  // --- Step 1: Parse and rebuild frontmatter (handles both LF and CRLF source files) ---
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+  if (fmMatch) {
+    const fmRaw = fmMatch[1];
+
+    // Extract only the description value
+    const descMatch = fmRaw.match(/^description:\s*["']?(.*?)["']?\s*$/m);
+    let description = descMatch ? descMatch[1].trim() : 'GSD slash command';
+
+    // Reconstruct frontmatter with only description (always LF in output)
+    const newFrontmatter = `---\ndescription: "${description}"\n---\n`;
+    content = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, newFrontmatter);
+    // Normalise remaining CRLF to LF so output files are consistent
+    content = content.replace(/\r\n/g, '\n');
+  }
+
+  // --- Step 2: Convert tool names in body (existing logic) ---
+  const toolMap = {
+    'Read': 'read_file',
+    'Write': 'write_to_file',
+    'Edit': 'apply_diff',
+    'Bash': 'execute_command',
+    'Glob': 'list_files',
+    'Grep': 'search_files',
+    'Task': 'new_task',
+    'AskUserQuestion': 'ask_followup_question',
+    'TodoWrite': 'update_todo_list',
+  };
+  for (const [claude, roo] of Object.entries(toolMap)) {
+    const regex = new RegExp(`(?<=- )${claude}\\b`, 'g');
+    content = content.replace(regex, roo);
+  }
+
+  // --- Step 3: Convert /gsd:xxx → /gsd-xxx in body text ---
+  content = content.replace(/\/gsd:([a-z][a-z0-9-]*)/g, '/gsd-$1');
+
+  // --- Step 4: Path replacement ---
+  content = replacePathsForRoo(content, pathPrefix);
+
+  // --- Step 5: Project instructions update ---
+  content = updateProjectInstructionsForRoo(content);
+
+  return content;
+}
+
+/**
+ * Helper to replace .claude paths with Roo-specific paths
+ */
+function replacePathsForRoo(content, pathPrefix) {
+  const globalClaudeRegex = /~\/\.claude\//g;
+  const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+  const localClaudeRegex = /\.\/\.claude\//g;
+
+  // Replace global ~/.claude/ with Roo's global path
+  content = content.replace(globalClaudeRegex, pathPrefix);
+
+  // Replace global $HOME/.claude/ with Roo's global path
+  content = content.replace(globalClaudeHomeRegex, pathPrefix);
+
+  // Replace local ./.claude/ with ./.roo/
+  content = content.replace(localClaudeRegex, `./.roo/`);
+
+  return content;
+}
+
+/**
+ * Update project instructions to mention Roo Code and its mechanics
+ */
+function updateProjectInstructionsForRoo(content) {
+  // Replace mentions of Claude Code with Roo Code
+  content = content.replace(/Claude Code/g, 'Roo Code');
+
+  // Replace mentions of .claude.json with .clinerules or similar if applicable
+  // For now, GSD uses its own config files, but we should mention Roo's mode system
+  if (content.includes('gsd-executor')) {
+    const note = '\n\nNote: This task will be executed by the `gsd-executor` mode. Once spawned, the executor will follow the plan until completion. You should use the `new_task` tool to initiate it.';
+    if (!content.includes(note)) {
+      content += note;
+    }
+  }
+
+  // Add a reminder about sequential tool execution if relevant
+  if (content.includes('sequential') || content.includes('step-by-step')) {
+    const rNote = '\n\nIMPORTANT: Execute each step sequentially. Wait for the result of each tool use before proceeding to the next step.';
+    if (!content.includes(rNote)) {
+      content += rNote;
+    }
+  }
+
+  return content;
 }
 
 /**
@@ -2705,7 +3097,7 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
   if (!fs.existsSync(srcDir)) {
     return;
   }
-  
+
   // Remove old gsd-*.md files before copying new ones
   if (fs.existsSync(destDir)) {
     for (const file of fs.readdirSync(destDir)) {
@@ -2716,12 +3108,12 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
   } else {
     fs.mkdirSync(destDir, { recursive: true });
   }
-  
+
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-  
+
   for (const entry of entries) {
     const srcPath = path.join(srcDir, entry.name);
-    
+
     if (entry.isDirectory()) {
       // Recurse into subdirectories, adding to prefix
       // e.g., commands/gsd/debug/start.md -> command/gsd-debug-start.md
@@ -2742,7 +3134,12 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
       content = content.replace(localClaudeRegex, `./${getDirName(runtime)}/`);
       content = content.replace(opencodeDirRegex, pathPrefix);
       content = processAttribution(content, getCommitAttribution(runtime));
-      content = convertClaudeToOpencodeFrontmatter(content);
+
+      if (runtime === 'opencode') {
+        content = convertClaudeToOpencodeFrontmatter(content);
+      } else if (runtime === 'roo') {
+        content = convertCommandForRoo(content, pathPrefix);
+      }
 
       fs.writeFileSync(destPath, content);
     }
@@ -3085,6 +3482,14 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand
         } else {
           fs.writeFileSync(destPath, content);
         }
+      } else if (runtime === 'roo') {
+        if (isCommand) {
+          content = convertCommandForRoo(content, pathPrefix);
+        } else {
+          // Apply /gsd:xxx → /gsd-xxx for workflow/template/reference prose
+          content = content.replace(/\/gsd:([a-z][a-z0-9-]*)/g, '/gsd-$1');
+        }
+        fs.writeFileSync(destPath, content);
       } else if (isCodex) {
         content = convertClaudeToCodexMarkdown(content);
         fs.writeFileSync(destPath, content);
@@ -3201,7 +3606,7 @@ function cleanupOrphanedHooks(settings) {
   // Only match the specific old GSD path pattern (hooks/statusline.js),
   // not third-party statusline scripts that happen to contain 'statusline.js'
   if (settings.statusLine && settings.statusLine.command &&
-      /hooks[\/\\]statusline\.js/.test(settings.statusLine.command)) {
+    /hooks[\/\\]statusline\.js/.test(settings.statusLine.command)) {
     settings.statusLine.command = settings.statusLine.command.replace(
       /hooks([\/\\])statusline\.js/,
       'hooks$1gsd-statusline.js'
@@ -3299,11 +3704,13 @@ function validateHookFields(settings) {
  */
 function uninstall(isGlobal, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
+  const isGemini = runtime === 'gemini';
   const isCodex = runtime === 'codex';
   const isCopilot = runtime === 'copilot';
   const isAntigravity = runtime === 'antigravity';
   const isCursor = runtime === 'cursor';
   const isWindsurf = runtime === 'windsurf';
+  const isRoo = runtime === 'roo';
   const dirName = getDirName(runtime);
 
   // Get the target directory based on runtime and install type
@@ -3316,13 +3723,14 @@ function uninstall(isGlobal, runtime = 'claude') {
     : targetDir.replace(process.cwd(), '.');
 
   let runtimeLabel = 'Claude Code';
-  if (runtime === 'opencode') runtimeLabel = 'OpenCode';
-  if (runtime === 'gemini') runtimeLabel = 'Gemini';
-  if (runtime === 'codex') runtimeLabel = 'Codex';
-  if (runtime === 'copilot') runtimeLabel = 'Copilot';
-  if (runtime === 'antigravity') runtimeLabel = 'Antigravity';
-  if (runtime === 'cursor') runtimeLabel = 'Cursor';
-  if (runtime === 'windsurf') runtimeLabel = 'Windsurf';
+  if (isOpencode) runtimeLabel = 'OpenCode';
+  if (isGemini) runtimeLabel = 'Gemini';
+  if (isCodex) runtimeLabel = 'Codex';
+  if (isCopilot) runtimeLabel = 'Copilot';
+  if (isAntigravity) runtimeLabel = 'Antigravity';
+  if (isCursor) runtimeLabel = 'Cursor';
+  if (isWindsurf) runtimeLabel = 'Windsurf';
+  if (isRoo) runtimeLabel = 'Roo Code';
 
   console.log(`  Uninstalling GSD from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
 
@@ -3369,38 +3777,90 @@ function uninstall(isGlobal, runtime = 'claude') {
 
     // Codex-only: remove GSD agent .toml config files and config.toml sections
     if (isCodex) {
-    const codexAgentsDir = path.join(targetDir, 'agents');
-    if (fs.existsSync(codexAgentsDir)) {
-      const tomlFiles = fs.readdirSync(codexAgentsDir);
-      let tomlCount = 0;
-      for (const file of tomlFiles) {
-        if (file.startsWith('gsd-') && file.endsWith('.toml')) {
-          fs.unlinkSync(path.join(codexAgentsDir, file));
-          tomlCount++;
+      const codexAgentsDir = path.join(targetDir, 'agents');
+      if (fs.existsSync(codexAgentsDir)) {
+        const tomlFiles = fs.readdirSync(codexAgentsDir);
+        let tomlCount = 0;
+        for (const file of tomlFiles) {
+          if (file.startsWith('gsd-') && file.endsWith('.toml')) {
+            fs.unlinkSync(path.join(codexAgentsDir, file));
+            tomlCount++;
+          }
+        }
+        if (tomlCount > 0) {
+          removedCount++;
+          console.log(`  ${green}✓${reset} Removed ${tomlCount} agent .toml configs`);
         }
       }
-      if (tomlCount > 0) {
-        removedCount++;
-        console.log(`  ${green}✓${reset} Removed ${tomlCount} agent .toml configs`);
+
+      // Codex: clean GSD sections from config.toml
+      const configPath = path.join(targetDir, 'config.toml');
+      if (fs.existsSync(configPath)) {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const cleaned = stripGsdFromCodexConfig(content);
+        if (cleaned === null) {
+          // File is empty after stripping — delete it
+          fs.unlinkSync(configPath);
+          removedCount++;
+          console.log(`  ${green}✓${reset} Removed config.toml (was GSD-only)`);
+        } else if (cleaned !== content) {
+          fs.writeFileSync(configPath, cleaned);
+          removedCount++;
+          console.log(`  ${green}✓${reset} Cleaned GSD sections from config.toml`);
+        }
       }
+    }
+  } else if (isRoo) {
+    // Roo: remove commands/gsd-*.md files
+    const commandDir = path.join(targetDir, 'commands');
+    if (fs.existsSync(commandDir)) {
+      const files = fs.readdirSync(commandDir);
+      for (const file of files) {
+        if (file.startsWith('gsd-') && file.endsWith('.md')) {
+          fs.unlinkSync(path.join(commandDir, file));
+          removedCount++;
+        }
+      }
+      console.log(`  ${green}✓${reset} Removed GSD commands from commands/`);
     }
 
-    // Codex: clean GSD sections from config.toml
-    const configPath = path.join(targetDir, 'config.toml');
-    if (fs.existsSync(configPath)) {
-      const content = fs.readFileSync(configPath, 'utf8');
-      const cleaned = stripGsdFromCodexConfig(content);
-      if (cleaned === null) {
-        // File is empty after stripping — delete it
-        fs.unlinkSync(configPath);
-        removedCount++;
-        console.log(`  ${green}✓${reset} Removed config.toml (was GSD-only)`);
-      } else if (cleaned !== content) {
-        fs.writeFileSync(configPath, cleaned);
-        removedCount++;
-        console.log(`  ${green}✓${reset} Cleaned GSD sections from config.toml`);
+    // Roo: strip GSD modes from the appropriate modes config file
+    let customModesPath;
+    if (isGlobal) {
+      if (process.platform === 'win32') {
+        customModesPath = path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
+      } else if (process.platform === 'darwin') {
+        customModesPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
+      } else {
+        // Linux / other Unix
+        customModesPath = path.join(os.homedir(), '.config', 'Code', 'User', 'globalStorage', 'rooveterinaryinc.roo-cline', 'settings', 'custom_modes.yaml');
       }
+    } else {
+      // Project-level modes live in .roomodes at the workspace root
+      customModesPath = path.join(process.cwd(), '.roomodes');
     }
+    if (fs.existsSync(customModesPath)) {
+      const existing = fs.readFileSync(customModesPath, 'utf8');
+      // Split on "  - slug:" boundaries (2-space indent, matching installRooModes output), discard gsd-* blocks
+      const parts = existing.split(/(?=^  - slug:)/m);
+      const header = parts[0];
+      const kept = parts.slice(1).filter(block => {
+        const m = block.match(/^  - slug:\s*(\S+)/);
+        return !m || !m[1].startsWith('gsd-');
+      });
+      const cleaned = header + kept.join('');
+      const modesFileName = isGlobal ? 'custom_modes.yaml' : '.roomodes';
+      if (kept.length < parts.length - 1) {
+        // If only the header remains and it's just "customModes:\n" with nothing else, remove the file
+        if (cleaned.trim() === 'customModes:' || cleaned.trim() === '') {
+          fs.unlinkSync(customModesPath);
+          console.log(`  ${green}✓${reset} Removed ${modesFileName} (was GSD-only)`);
+        } else {
+          fs.writeFileSync(customModesPath, cleaned);
+          console.log(`  ${green}✓${reset} Stripped GSD modes from ${modesFileName}`);
+        }
+        removedCount++;
+      }
     }
   } else if (isCopilot) {
     // Copilot: remove skills/gsd-*/ directories (same layout as Codex skills)
@@ -3562,7 +4022,7 @@ function uninstall(isGlobal, runtime = 'claude') {
 
     // Remove GSD statusline if it references our hook
     if (settings.statusLine && settings.statusLine.command &&
-        settings.statusLine.command.includes('gsd-statusline')) {
+      settings.statusLine.command.includes('gsd-statusline')) {
       delete settings.statusLine;
       settingsModified = true;
       console.log(`  ${green}✓${reset} Removed GSD statusline from settings`);
@@ -3806,7 +4266,7 @@ function configureOpencodePermissions(isGlobal = true) {
   const gsdPath = opencodeConfigDir === defaultConfigDir
     ? '~/.config/opencode/get-shit-done/*'
     : `${opencodeConfigDir.replace(/\\/g, '/')}/get-shit-done/*`;
-  
+
   let modified = false;
 
   // Configure read permission
@@ -3919,8 +4379,10 @@ function writeManifest(configDir, runtime = 'claude') {
   const isAntigravity = runtime === 'antigravity';
   const isCursor = runtime === 'cursor';
   const isWindsurf = runtime === 'windsurf';
+  const isRoo = runtime === 'roo';
   const gsdDir = path.join(configDir, 'get-shit-done');
   const commandsDir = path.join(configDir, 'commands', 'gsd');
+  const rooCommandDir = path.join(configDir, 'commands');
   const opencodeCommandDir = path.join(configDir, 'command');
   const codexSkillsDir = path.join(configDir, 'skills');
   const agentsDir = path.join(configDir, 'agents');
@@ -3930,10 +4392,17 @@ function writeManifest(configDir, runtime = 'claude') {
   for (const [rel, hash] of Object.entries(gsdHashes)) {
     manifest.files['get-shit-done/' + rel] = hash;
   }
-  if (!isOpencode && !isCodex && !isCopilot && !isAntigravity && !isCursor && !isWindsurf && fs.existsSync(commandsDir)) {
+  if (!isOpencode && !isCodex && !isCopilot && !isAntigravity && !isCursor && !isWindsurf && !isRoo && fs.existsSync(commandsDir)) {
     const cmdHashes = generateManifest(commandsDir);
     for (const [rel, hash] of Object.entries(cmdHashes)) {
       manifest.files['commands/gsd/' + rel] = hash;
+    }
+  }
+  if (isRoo && fs.existsSync(rooCommandDir)) {
+    for (const file of fs.readdirSync(rooCommandDir)) {
+      if (file.startsWith('gsd-') && file.endsWith('.md')) {
+        manifest.files['commands/' + file] = fileHash(path.join(rooCommandDir, file));
+      }
     }
   }
   if (isOpencode && fs.existsSync(opencodeCommandDir)) {
@@ -4029,7 +4498,7 @@ function reportLocalPatches(configDir, runtime = 'claude') {
   try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch { return []; }
 
   if (meta.files && meta.files.length > 0) {
-    const reapplyCommand = (runtime === 'opencode' || runtime === 'copilot')
+    const reapplyCommand = (runtime === 'opencode' || runtime === 'copilot' || runtime === 'roo')
       ? '/gsd-reapply-patches'
       : runtime === 'codex'
         ? '$gsd-reapply-patches'
@@ -4058,6 +4527,7 @@ function install(isGlobal, runtime = 'claude') {
   const isAntigravity = runtime === 'antigravity';
   const isCursor = runtime === 'cursor';
   const isWindsurf = runtime === 'windsurf';
+  const isRoo = runtime === 'roo';
   const dirName = getDirName(runtime);
   const src = path.join(__dirname, '..');
 
@@ -4089,6 +4559,7 @@ function install(isGlobal, runtime = 'claude') {
   if (isAntigravity) runtimeLabel = 'Antigravity';
   if (isCursor) runtimeLabel = 'Cursor';
   if (isWindsurf) runtimeLabel = 'Windsurf';
+  if (isRoo) runtimeLabel = 'Roo Code';
 
   console.log(`  Installing for ${cyan}${runtimeLabel}${reset} to ${cyan}${locationLabel}${reset}\n`);
 
@@ -4101,12 +4572,12 @@ function install(isGlobal, runtime = 'claude') {
   // Clean up orphaned files from previous versions
   cleanupOrphanedFiles(targetDir);
 
-  // OpenCode uses command/ (flat), Codex uses skills/, Claude/Gemini use commands/gsd/
+  // OpenCode uses command/ (flat), Codex uses skills/, Claude/Gemini use commands/gsd/, Roo uses commands/ (flat with gsd- prefix)
   if (isOpencode) {
     // OpenCode: flat structure in command/ directory
     const commandDir = path.join(targetDir, 'command');
     fs.mkdirSync(commandDir, { recursive: true });
-    
+
     // Copy commands/gsd/*.md as command/gsd-*.md (flatten structure)
     const gsdSrc = path.join(src, 'commands', 'gsd');
     copyFlattenedCommands(gsdSrc, commandDir, 'gsd', pathPrefix, runtime);
@@ -4115,6 +4586,20 @@ function install(isGlobal, runtime = 'claude') {
       console.log(`  ${green}✓${reset} Installed ${count} commands to command/`);
     } else {
       failures.push('command/gsd-*');
+    }
+  } else if (isRoo) {
+    // Roo: flat structure in commands/ directory
+    const commandDir = path.join(targetDir, 'commands');
+    fs.mkdirSync(commandDir, { recursive: true });
+
+    // Copy commands/gsd/*.md as commands/gsd-*.md (flatten structure)
+    const gsdSrc = path.join(src, 'commands', 'gsd');
+    copyFlattenedCommands(gsdSrc, commandDir, 'gsd', pathPrefix, runtime);
+    if (verifyInstalled(commandDir, 'commands/gsd-*')) {
+      const count = fs.readdirSync(commandDir).filter(f => f.startsWith('gsd-')).length;
+      console.log(`  ${green}✓${reset} Installed ${count} commands to commands/`);
+    } else {
+      failures.push('commands/gsd-*');
     }
   } else if (isCodex) {
     const skillsDir = path.join(targetDir, 'skills');
@@ -4180,7 +4665,7 @@ function install(isGlobal, runtime = 'claude') {
     // Claude Code & Gemini: nested structure in commands/ directory
     const commandsDir = path.join(targetDir, 'commands');
     fs.mkdirSync(commandsDir, { recursive: true });
-    
+
     const gsdSrc = path.join(src, 'commands', 'gsd');
     const gsdDest = path.join(commandsDir, 'gsd');
     copyWithPathReplacement(gsdSrc, gsdDest, pathPrefix, runtime, true, isGlobal);
@@ -4277,7 +4762,7 @@ function install(isGlobal, runtime = 'claude') {
     failures.push('VERSION');
   }
 
-  if (!isCodex && !isCopilot && !isCursor && !isWindsurf) {
+  if (!isCodex && !isCopilot && !isCursor && !isWindsurf && !isRoo) {
     // Write package.json to force CommonJS mode for GSD scripts
     // Prevents "require is not defined" errors when project has "type": "module"
     // Node.js walks up looking for package.json - this stops inheritance from project
@@ -4443,6 +4928,12 @@ function install(isGlobal, runtime = 'claude') {
     return { settingsPath: null, settings: null, statuslineCommand: null, runtime };
   }
 
+  if (isRoo) {
+    // Roo: Generate custom_modes.yaml or instructions
+    installRooModes(targetDir, agentsSrc, isGlobal);
+    return { settingsPath: null, settings: null, statuslineCommand: null, runtime };
+  }
+
   // Configure statusline and hooks in settings.json
   // Gemini and Antigravity use AfterTool instead of PostToolUse for post-tool hooks
   const postToolEvent = (runtime === 'gemini' || runtime === 'antigravity') ? 'AfterTool' : 'PostToolUse';
@@ -4578,8 +5069,9 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   const isCopilot = runtime === 'copilot';
   const isCursor = runtime === 'cursor';
   const isWindsurf = runtime === 'windsurf';
+  const isRoo = runtime === 'roo';
 
-  if (shouldInstallStatusline && !isOpencode && !isCodex && !isCopilot && !isCursor && !isWindsurf) {
+  if (shouldInstallStatusline && !isOpencode && !isCodex && !isCopilot && !isCursor && !isWindsurf && !isRoo) {
     settings.statusLine = {
       type: 'command',
       command: statuslineCommand
@@ -4588,7 +5080,7 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   }
 
   // Write settings when runtime supports settings.json
-  if (!isCodex && !isCopilot && !isCursor && !isWindsurf) {
+  if (!isCodex && !isCopilot && !isCursor && !isWindsurf && !isRoo) {
     writeSettings(settingsPath, settings);
   }
 
@@ -4625,6 +5117,7 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   if (runtime === 'copilot') program = 'Copilot';
   if (runtime === 'antigravity') program = 'Antigravity';
   if (runtime === 'cursor') program = 'Cursor';
+  if (runtime === 'roo') program = 'Roo Code';
 
   let command = '/gsd:new-project';
   if (runtime === 'opencode') command = '/gsd-new-project';
@@ -4632,11 +5125,11 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   if (runtime === 'copilot') command = '/gsd-new-project';
   if (runtime === 'antigravity') command = '/gsd-new-project';
   if (runtime === 'cursor') command = 'gsd-new-project (mention the skill name)';
+  if (runtime === 'roo') command = '/gsd-new-project';
   console.log(`
   ${green}Done!${reset} Open a blank directory in ${program} and run ${cyan}${command}${reset}.
 
-  ${cyan}Join the community:${reset} https://discord.gg/gsd
-`);
+  ${cyan}Join the community:${reset} https://discord.gg/gsd`);
 }
 
 /**
@@ -4680,8 +5173,7 @@ function handleStatusline(settings, isInteractive, callback) {
     • Context window usage (color-coded)
 
   ${cyan}1${reset}) Keep existing
-  ${cyan}2${reset}) Replace with GSD statusline
-`);
+  ${cyan}2${reset}) Replace with GSD statusline`);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
     rl.close();
@@ -4744,8 +5236,7 @@ function promptSdk(callback) {
     ${dim}gsd-sdk run "prompt"${reset}    Execute a milestone from text
 
   ${cyan}1${reset}) No
-  ${cyan}2${reset}) Yes ${dim}(runs: npm install -g @gsd-build/sdk)${reset}
-`);
+  ${cyan}2${reset}) Yes ${dim}(runs: npm install -g @gsd-build/sdk)${reset}`);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
     answered = true;
@@ -4782,9 +5273,10 @@ function promptRuntime(callback) {
     '5': 'copilot',
     '6': 'antigravity',
     '7': 'cursor',
-    '8': 'windsurf'
+    '8': 'windsurf',
+    '9': 'roo'
   };
-  const allRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'antigravity', 'cursor', 'windsurf'];
+  const allRuntimes = ['claude', 'opencode', 'gemini', 'codex', 'copilot', 'antigravity', 'cursor', 'windsurf', 'roo'];
 
   console.log(`  ${yellow}Which runtime(s) would you like to install for?${reset}\n\n  ${cyan}1${reset}) Claude Code  ${dim}(~/.claude)${reset}
   ${cyan}2${reset}) OpenCode     ${dim}(~/.config/opencode)${reset} - open source, free models
@@ -4794,10 +5286,10 @@ function promptRuntime(callback) {
   ${cyan}6${reset}) Antigravity  ${dim}(~/.gemini/antigravity)${reset}
   ${cyan}7${reset}) Cursor       ${dim}(~/.cursor)${reset}
   ${cyan}8${reset}) Windsurf     ${dim}(~/.windsurf)${reset}
-  ${cyan}9${reset}) All
+  ${cyan}9${reset}) Roo Code     ${dim}(~/.roo)${reset}
+  ${cyan}10${reset}) All
 
-  ${dim}Select multiple: 1,4,6 or 1 4 6${reset}
-`);
+  ${dim}Select multiple: 1,4,6 or 1 4 6${reset}`);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
     answered = true;
@@ -4805,7 +5297,7 @@ function promptRuntime(callback) {
     const input = answer.trim() || '1';
 
     // "All" shortcut
-    if (input === '9') {
+    if (input === '10') {
       callback(allRuntimes);
       return;
     }
@@ -4857,8 +5349,7 @@ function promptLocation(runtimes) {
   const localExamples = runtimes.map(r => `./${getDirName(r)}`).join(', ');
 
   console.log(`  ${yellow}Where would you like to install?${reset}\n\n  ${cyan}1${reset}) Global ${dim}(${pathExamples})${reset} - available in all projects
-  ${cyan}2${reset}) Local  ${dim}(${localExamples})${reset} - this project only
-`);
+  ${cyan}2${reset}) Local  ${dim}(${localExamples})${reset} - this project only`);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
     answered = true;
@@ -4938,6 +5429,10 @@ if (process.env.GSD_TEST_MODE) {
     convertClaudeCommandToCodexSkill,
     convertClaudeToOpencodeFrontmatter,
     neutralizeAgentReferences,
+    replacePathsForRoo,
+    convertCommandForRoo,
+    installRooModes,
+    copyFlattenedCommands,
     GSD_CODEX_MARKER,
     CODEX_AGENT_SANDBOX,
     getDirName,
@@ -4969,41 +5464,41 @@ if (process.env.GSD_TEST_MODE) {
   };
 } else {
 
-// Main logic
-if (hasGlobal && hasLocal) {
-  console.error(`  ${yellow}Cannot specify both --global and --local${reset}`);
-  process.exit(1);
-} else if (explicitConfigDir && hasLocal) {
-  console.error(`  ${yellow}Cannot use --config-dir with --local${reset}`);
-  process.exit(1);
-} else if (hasUninstall) {
-  if (!hasGlobal && !hasLocal) {
-    console.error(`  ${yellow}--uninstall requires --global or --local${reset}`);
+  // Main logic
+  if (hasGlobal && hasLocal) {
+    console.error(`  ${yellow}Cannot specify both --global and --local${reset}`);
     process.exit(1);
-  }
-  const runtimes = selectedRuntimes.length > 0 ? selectedRuntimes : ['claude'];
-  for (const runtime of runtimes) {
-    uninstall(hasGlobal, runtime);
-  }
-} else if (selectedRuntimes.length > 0) {
-  if (!hasGlobal && !hasLocal) {
-    promptLocation(selectedRuntimes);
+  } else if (explicitConfigDir && hasLocal) {
+    console.error(`  ${yellow}Cannot use --config-dir with --local${reset}`);
+    process.exit(1);
+  } else if (hasUninstall) {
+    if (!hasGlobal && !hasLocal) {
+      console.error(`  ${yellow}--uninstall requires --global or --local${reset}`);
+      process.exit(1);
+    }
+    const runtimes = selectedRuntimes.length > 0 ? selectedRuntimes : ['claude'];
+    for (const runtime of runtimes) {
+      uninstall(hasGlobal, runtime);
+    }
+  } else if (selectedRuntimes.length > 0) {
+    if (!hasGlobal && !hasLocal) {
+      promptLocation(selectedRuntimes);
+    } else {
+      installAllRuntimes(selectedRuntimes, hasGlobal, false);
+    }
+  } else if (hasGlobal || hasLocal) {
+    // Default to Claude if no runtime specified but location is
+    installAllRuntimes(['claude'], hasGlobal, false);
   } else {
-    installAllRuntimes(selectedRuntimes, hasGlobal, false);
+    // Interactive
+    if (!process.stdin.isTTY) {
+      console.log(`  ${yellow}Non-interactive terminal detected, defaulting to Claude Code global install${reset}\n`);
+      installAllRuntimes(['claude'], true, false);
+    } else {
+      promptRuntime((runtimes) => {
+        promptLocation(runtimes);
+      });
+    }
   }
-} else if (hasGlobal || hasLocal) {
-  // Default to Claude if no runtime specified but location is
-  installAllRuntimes(['claude'], hasGlobal, false);
-} else {
-  // Interactive
-  if (!process.stdin.isTTY) {
-    console.log(`  ${yellow}Non-interactive terminal detected, defaulting to Claude Code global install${reset}\n`);
-    installAllRuntimes(['claude'], true, false);
-  } else {
-    promptRuntime((runtimes) => {
-      promptLocation(runtimes);
-    });
-  }
-}
 
 } // end of else block for GSD_TEST_MODE
