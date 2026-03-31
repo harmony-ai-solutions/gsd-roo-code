@@ -3041,8 +3041,9 @@ function convertCommandForRoo(content, pathPrefix) {
  * Helper to replace .claude paths with Roo-specific paths
  */
 function replacePathsForRoo(content, pathPrefix) {
-  const globalClaudeRegex = /~\/\.claude\//g;
-  const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+  // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+  const globalClaudeRegex = /~\/\.claude\/?/g;
+  const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
   const localClaudeRegex = /\.\/\.claude\//g;
 
   // Replace global ~/.claude/ with Roo's global path
@@ -3127,8 +3128,9 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
       const destPath = path.join(destDir, destName);
 
       let content = fs.readFileSync(srcPath, 'utf8');
-      const globalClaudeRegex = /~\/\.claude\//g;
-      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+      const globalClaudeRegex = /~\/\.claude\/?/g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
       const localClaudeRegex = /\.\/\.claude\//g;
       const opencodeDirRegex = /~\/\.opencode\//g;
       content = content.replace(globalClaudeRegex, pathPrefix);
@@ -3193,8 +3195,9 @@ function copyCommandsAsCodexSkills(srcDir, skillsDir, prefix, pathPrefix, runtim
       fs.mkdirSync(skillDir, { recursive: true });
 
       let content = fs.readFileSync(srcPath, 'utf8');
-      const globalClaudeRegex = /~\/\.claude\//g;
-      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+      const globalClaudeRegex = /~\/\.claude\/?/g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
       const localClaudeRegex = /\.\/\.claude\//g;
       const codexDirRegex = /~\/\.codex\//g;
       content = content.replace(globalClaudeRegex, pathPrefix);
@@ -3246,8 +3249,9 @@ function copyCommandsAsCursorSkills(srcDir, skillsDir, prefix, pathPrefix, runti
       fs.mkdirSync(skillDir, { recursive: true });
 
       let content = fs.readFileSync(srcPath, 'utf8');
-      const globalClaudeRegex = /~\/\.claude\//g;
-      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+      const globalClaudeRegex = /~\/\.claude\/?/g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
       const localClaudeRegex = /\.\/\.claude\//g;
       const cursorDirRegex = /~\/\.cursor\//g;
       content = content.replace(globalClaudeRegex, pathPrefix);
@@ -3303,8 +3307,9 @@ function copyCommandsAsWindsurfSkills(srcDir, skillsDir, prefix, pathPrefix, run
       fs.mkdirSync(skillDir, { recursive: true });
 
       let content = fs.readFileSync(srcPath, 'utf8');
-      const globalClaudeRegex = /~\/\.claude\//g;
-      const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+      // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+      const globalClaudeRegex = /~\/\.claude\/?/g;
+      const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
       const localClaudeRegex = /\.\/\.claude\//g;
       const windsurfDirRegex = /~\/\.windsurf\//g;
       content = content.replace(globalClaudeRegex, pathPrefix);
@@ -3460,8 +3465,9 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand
       // Skip generic replacement for Copilot — convertClaudeToCopilotContent handles all paths
       let content = fs.readFileSync(srcPath, 'utf8');
       if (!isCopilot && !isAntigravity) {
-        const globalClaudeRegex = /~\/\.claude\//g;
-        const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
+        // Match ~/.claude/ and ~/.claude (without trailing slash) to handle all cases
+        const globalClaudeRegex = /~\/\.claude\/?/g;
+        const globalClaudeHomeRegex = /\$HOME\/\.claude\/?/g;
         const localClaudeRegex = /\.\/\.claude\//g;
         content = content.replace(globalClaudeRegex, pathPrefix);
         content = content.replace(globalClaudeHomeRegex, pathPrefix);
@@ -4709,8 +4715,9 @@ function install(isGlobal, runtime = 'claude') {
       if (entry.isFile() && entry.name.endsWith('.md')) {
         let content = fs.readFileSync(path.join(agentsSrc, entry.name), 'utf8');
         // Replace ~/.claude/ and $HOME/.claude/ as they are the source of truth in the repo
-        const dirRegex = /~\/\.claude\//g;
-        const homeDirRegex = /\$HOME\/\.claude\//g;
+        // Also match ~/.claude (without trailing slash) to handle all cases
+        const dirRegex = /~\/\.claude\/?/g;
+        const homeDirRegex = /\$HOME\/\.claude\/?/g;
         if (!isCopilot && !isAntigravity) {
           content = content.replace(dirRegex, pathPrefix);
           content = content.replace(homeDirRegex, pathPrefix);
