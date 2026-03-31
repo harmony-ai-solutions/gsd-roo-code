@@ -2468,6 +2468,8 @@ function installRooModes(targetDir, agentsSrc, isGlobal) {
   console.log(`  ${green}✓${reset} Preparing ${agentFiles.length} Roo custom modes`);
 
   const agentModeMap = {
+    'gsd-advisor-researcher.md': { slug: 'gsd-advisor-researcher', name: 'GSD Advisor Researcher', groups: ['read', 'command'], whenToUse: 'Provides expert guidance on GSD methodology, best practices, and implementation strategies. Spawned by /gsd-advisor.' },
+    'gsd-assumptions-analyzer.md': { slug: 'gsd-assumptions-analyzer', name: 'GSD Assumptions Analyzer', groups: ['read', 'command'], whenToUse: 'Analyzes project assumptions and identifies potential risks or gaps in planning. Spawned by /gsd-analyze-assumptions.' },
     'gsd-executor.md': { slug: 'gsd-executor', name: 'GSD Executor', groups: ['read', 'edit', 'command'], whenToUse: 'Executes GSD PLAN.md files atomically with per-task commits. Spawned by /gsd-execute-phase.' },
     'gsd-planner.md': { slug: 'gsd-planner', name: 'GSD Planner', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Creates PLAN.md files for GSD phases. Spawned by /gsd-plan-phase.' },
     'gsd-phase-researcher.md': { slug: 'gsd-phase-researcher', name: 'GSD Phase Researcher', groups: ['read', 'edit', 'command', 'mcp'], whenToUse: 'Researches domain knowledge before phase planning. Spawned by /gsd-plan-phase.' },
